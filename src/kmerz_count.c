@@ -263,10 +263,12 @@ static void CountKmers(char* const* const file_names,
         }
     
 #pragma omp parallel
+        {
         if (count_all == TRUE) {
             ProcessChunk(chunkbases, bases_indx, kmer_length, kmers);
         } else {
             ProcessChunkFirstRound(chunkbases, bases_indx, kmer_length, bf, kmers);
+        }
         }
 
         PrintDebugMessage("1. Done with all the sequences in %s", file_name);
@@ -330,7 +332,9 @@ static void CountKmers(char* const* const file_names,
                 chunkbases[bases_indx++] = CopyString(bases);
                 if ((bases_indx % chunk) == 0) {
 #pragma omp parallel
+                    {
                     ProcessChunkSecondRound(chunkbases,chunk,kmer_length,kmers);
+                    }
                     bases_indx = 0;
                 }
             }
@@ -343,7 +347,9 @@ static void CountKmers(char* const* const file_names,
         }
     
 #pragma omp parallel
+        {
         ProcessChunkSecondRound(chunkbases, bases_indx, kmer_length, kmers);
+        }
     }
     
     // now lets print the kmer counts
