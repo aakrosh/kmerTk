@@ -58,6 +58,6 @@ kmerz_select_enriched: utilities.h utilities.c sllist.h sllist.c clparsing.h clp
 	$(CC)  $(CFLAGS) -c kmer.c
 	$(CC)  $(CFLAGS) -c murmur_hash.c
 	$(CC)  $(CFLAGS) -c bloom_filter.c
-	$(CC1) $(CPFLAGS) -I$(SPINC) -fopenmp -o kmerz_select_enriched utilities.o sllist.o clparsing.o kmer.o murmur_hash.o fasta.o fastq.o bloom_filter.o kmerz_select_enriched.c -lz -lm
+	$(CC1) $(CPFLAGS) -I$(SPINC) -o kmerz_select_enriched utilities.o sllist.o clparsing.o kmer.o murmur_hash.o fasta.o fastq.o bloom_filter.o kmerz_select_enriched.c -lz -lm
 
 

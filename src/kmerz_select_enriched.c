@@ -135,14 +135,12 @@ int main(int argc UNUSED, char** argv)
     fprintf(stderr, 
     "Added %"PRIu64" kmers from the homogametic sex\n", num_kmers_added);
     
-    // now iterate through the heterogametic sex kmers to find the ones that are
-    // unique to it.
-    SparseHashSet het_only_kmers;
+    // now iterate through the heterogametic sex kmers to find the kmers seen
+    SparseHashSet het_kmers;
 
     fp = CkopenOrDie(het_kmers_name, "r");
 
-    uint64_t num_novel_found = 0;
-
+    num_kmers_added = 0;
     while (Getline(&fptr, &n, fp) != -1) {
         if (sscanf(fptr, "%s %*d\n", kmer_buffer) != 1) {
             PrintMessageThenDie("Unable to parse %s", fptr);
@@ -154,15 +152,15 @@ int main(int argc UNUSED, char** argv)
         antiword = ReverseComplementKmer(word, kmer_length);
         stored = word < antiword ? word : antiword;
         
-        if (CheckKmerInSparseHashSet(hom_kmers, stored) == FALSE) {
-            het_only_kmers.insert(stored);
-            num_novel_found += 1;
+        if (CheckKmerInSparseHashSet(het_kmers, stored) == FALSE) {
+            het_kmers.insert(stored);
+            num_kmers_added += 1;
         }
     }
     fclose(fp);
     Ckfree(fptr);
     fprintf(stderr, 
-    "Added %"PRIu64" kmers unique to the heterogametic sex\n", num_novel_found);
+    "Added %"PRIu64" kmers from the heterogametic sex\n", num_kmers_added);
  
     // now iterate through the fastq sequence from the heterogametic sex and
     // find ones that could be from the sex chromosome unique to this sex.
@@ -172,24 +170,40 @@ int main(int argc UNUSED, char** argv)
         if (sequence->slen >= kmer_length) {
             // let account for all the kmers in this sequence
             word = BuildIndex(sequence->bases, kmer_length);
-            uint num_kmers = strlen(sequence->bases) - kmer_length;
-            uint num_novel = 0;
+            uint num_kmers = 0;  // kmers that are not errors
+            uint num_novel = 0;  // kmers only seen in the heterogametic sex
 
             for (uint i = 0; i <= num_kmers; i++) {
                 word = GetNextKmer(word, sequence->bases, kmer_length, i);
                 antiword = ReverseComplementKmer(word, kmer_length);
                 stored = word < antiword ? word : antiword;
 
-                if (CheckKmerInSparseHashSet(het_only_kmers, stored) == TRUE) {
-                    //ConvertKmerToString(stored, kmer_length, &kmer_buffer);
-                    //fprintf(stderr, "%s is novel\n", kmer_buffer);
+                Bool het = CheckKmerInSparseHashSet(het_kmers, stored);
+                Bool hom = CheckKmerInSparseHashSet(hom_kmers, stored);
+
+                if ((het == FALSE) && (hom == FALSE)) {
+                    // definitely an error kmer; dont count it
+                } else if ((het == TRUE) && (hom == FALSE)) {
+                    // only seen in the heterogamtic sex; definitely interesting
                     num_novel += 1;
+                    num_kmers += 1;
+                } else if ((het == FALSE) && (hom == TRUE)) {
+                    // only seen in homogametic sex; probably a polymorphism?
+                    
+                } else if ((het == TRUE) && (hom == TRUE)) {
+                    // seen in both sexes
+                    num_kmers += 1;
+                } else {
+                    PrintThenDie("not possible");
                 }
             }
 
-            float frac = num_novel *1.0/ (num_kmers+1);
-            if (frac > fraction) {
-                PrintFastqSequence(sequence);
+            if (num_kmers > 0) {
+                float frac = num_novel * 1.0 / num_kmers;
+                if (frac >= fraction) {
+                    //fprintf(stderr, "%d %d %f\n", num_novel, num_kmers, frac);
+                    PrintFastqSequence(sequence);
+                }
             }
         }
 
