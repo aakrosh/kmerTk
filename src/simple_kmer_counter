@@ -17,38 +17,35 @@ __email__  = "ratan@bx.psu.edu"
 # do we want the debug information to be printed?
 debug_flag = False
 
-class fastqsequence:
-    def __init__(self, name, seq, qual):
+class fsequence:
+    def __init__(self, name, seq):
         self.name = name
         self.seq  = seq
-        self.qual = qual
-
-    def fq2seqfa(self):
-        str  = ">%s\n" % self.name
-        str += "%s\n" % self.seq
-        return str[:-1]
-
-    def fq2qfa(self, offset):
-        str  = ">%s\n" % self.name
-        for q in self.qual:
-            str += "%d " % (ord(q) - offset)
-        return str[:-1]
 
     def __str__(self):
-        str = "@%s\n" % self.name
-        str += "%s\n" % self.seq
-        str += "+\n"
-        str += "%s\n" % self.qual
-        return str[:-1]
+        string  = ">%s\n" % self.name
+        string += "%s" % self.seq
+        return string
 
     def __len__(self):
         assert len(self.seq) == len(self.qual)
         return len(self.seq)
 
-class fastq:
+class fseq:
     def __init__(self, filename):
+        file = open(filename, "r")
+        line = file.readline()
+        if line[0] == "@":
+            self.format = "fastq"
+        elif line[0] == ">":
+            self.format = "fasta"
+        else:
+            print >> stderr, "Unhandled format"
+        file.close()
+
         self.file = open(filename, "r")
-        self.fastqsequence = None
+        self.fqsequence = None
+        self.cache = None
 
     def __del__(self):
         self.file.close()
@@ -56,38 +53,61 @@ class fastq:
     def __iter__(self):
         return self
 
-    @staticmethod
-    def checkbases(line):
-        for base in line[:-1]:
-            if base not in ["a","c","g","t","n","A","C","G","T","N","."]:
-                return False
-        return True
-
     def close(self):
         self.file.close()
 
     def next(self):
-        line = self.file.readline()
-        if not line:
-            self.file.close()
-            raise StopIteration
-        assert line[0] == "@", "header should begin with a @ in a fastq file"
-        name = line[1:-1]
-        
-        line = self.file.readline()
-        assert fastq.checkbases(line) == True, \
-        "read %s should only have ACGTN" % (self.name)
-        seq = line[:-1].upper()
-        
-        line = self.file.readline()
-        assert line[0] == "+", \
-        "separator line in fastq file should begin with a +"
+        if self.format == "fastq":
+            line = self.file.readline()
+            if not line:
+                self.file.close()
+                raise StopIteration
+            assert line[0] == "@", "header should begin with a @ in a fastq file"
+            name = line[1:-1]
+            
+            line = self.file.readline()
+            seq = line[:-1].upper()
+            
+            line = self.file.readline()
+            assert line[0] == "+", \
+            "separator line in fastq file should begin with a +"
 
-        line = self.file.readline()
-        qual = line[:-1]
+            line = self.file.readline()
+            qual = line[:-1]
 
-        self.fastqsequence = fastqsequence(name, seq, qual)
-    
+            self.sequence = fsequence(name, seq)
+        elif self.format == "fasta":
+            if self.cache != None:
+                line = self.cache
+            else:
+                line = self.file.readline()
+                
+            if len(line) == 0:
+                self.file.close()
+                raise StopIteration
+            assert line[0] == ">", "header should start with a > in a fasta file"
+            assert line[-1] == "\n"
+            name = line[1:-1]
+            
+            sequence = ""
+            line = self.file.readline()
+
+            while line[0] !=  ">" :
+                sequence += line.strip()
+                # if there is a gap in the sequence (which would be the case 
+                # if the fasta sequence was of quality values)
+                if(line.find(" ")) != -1:
+                    sequence += " "
+
+                line = self.file.readline()
+                if len(line) == 0:
+                    break
+
+            self.cache = line
+            self.sequence = fsequence(name, sequence)
+        else:
+            print >> stderr, "Should not happen"    
+
         return self
 
 def reverse_complement(seq):
@@ -133,11 +153,11 @@ def main(klength, filename, printFrequencies):
     kmers = {}
 
     num_sequences_processed = 0
-    records = fastq(filename)
+    records = fseq(filename)
 
     for r in records:
-        s = r.fastqsequence
-
+        s = r.sequence
+    
         for i in range(0, len(s.seq) - klength + 1):
             kmer = s.seq[i:i+klength]
             
@@ -180,7 +200,6 @@ def main(klength, filename, printFrequencies):
         for kmer in keys:
             print ConvertKmerToString(kmer, klength), kmers[kmer]
     
-
 def usage():
     f = stderr
     print >> f, "usage:"
