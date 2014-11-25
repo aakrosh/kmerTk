@@ -35,13 +35,6 @@ extern "C" {
  *    will be supported as well. In that case we will consider the number of
  *    novel kmers that we see in the assembly rather than the reads. 
  * 
- * EXPERIMENT
- * I ran an experiment to determine the minimum fraction of kmers that should be
- * novel in a sequencing read for it to be determined as coming from the
- * heterogametic sex. It seems that at 0.5, the error rate of this determination
- * falls to close to 1%. I did this experiment using random genomes and the
- * error rate falls to 0 at about 0.85. At 0.7 the number is 0.5% or close to
- * it. 
  */
 
 Bool debug_flag;

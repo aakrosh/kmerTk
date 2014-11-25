@@ -1,4 +1,4 @@
-BINARIES = kmerz_count kmerz_select_enriched
+BINARIES = kmerz_count kmerz_tag
 
 CC  = gcc
 CC1 = g++
@@ -49,7 +49,7 @@ kmerz_count: utilities.h utilities.c sllist.h sllist.c clparsing.h clparsing.c k
 	$(CC)  $(CFLAGS) -c bloom_filter.c
 	$(CC1) $(CPFLAGS) -I$(SPINC) -fopenmp -o kmerz_count utilities.o sllist.o clparsing.o kmer.o murmur_hash.o fasta.o fastq.o bloom_filter.o kmerz_count.c -lz -lm
 
-kmerz_select_enriched: utilities.h utilities.c sllist.h sllist.c clparsing.h clparsing.c kmer.h kmer.c murmur_hash.h murmur_hash.c fasta.h fasta.c fastq.h fastq.c kmerz_select_enriched.c
+kmerz_tag: utilities.h utilities.c sllist.h sllist.c clparsing.h clparsing.c kmer.h kmer.c murmur_hash.h murmur_hash.c fasta.h fasta.c fastq.h fastq.c kmerz_tag.c
 	$(CC)  $(CFLAGS) -c utilities.c
 	$(CC)  $(CFLAGS) -c sllist.c
 	$(CC)  $(CFLAGS) -c clparsing.c
@@ -58,6 +58,6 @@ kmerz_select_enriched: utilities.h utilities.c sllist.h sllist.c clparsing.h clp
 	$(CC)  $(CFLAGS) -c kmer.c
 	$(CC)  $(CFLAGS) -c murmur_hash.c
 	$(CC)  $(CFLAGS) -c bloom_filter.c
-	$(CC1) $(CPFLAGS) -I$(SPINC) -o kmerz_select_enriched utilities.o sllist.o clparsing.o kmer.o murmur_hash.o fasta.o fastq.o bloom_filter.o kmerz_select_enriched.c -lz -lm
+	$(CC1) $(CPFLAGS) -I$(SPINC) -o kmerz_tag utilities.o sllist.o clparsing.o kmer.o murmur_hash.o fasta.o fastq.o bloom_filter.o kmerz_tag.c -lz -lm
 
 
